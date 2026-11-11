@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autoresearch"
+version = "2.0.0"
+description = "Evidence-backed research cycle: review -> novelty -> experiment -> manuscript, plus one workflow skill that runs the full loop."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "typer>=0.12",
+    "httpx>=0.27",
+    "pypdf>=4.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+autoresearch = "autoresearch.cli.app:app"
+
+[project.urls]
+Homepage = "https://github.com/ShopnilSen/ed-queue-optimization"
+Repository = "https://github.com/ShopnilSen/ed-queue-optimization"
+Issues = "https://github.com/ShopnilSen/ed-queue-optimization/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autoresearch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

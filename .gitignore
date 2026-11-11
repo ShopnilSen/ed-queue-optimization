@@ -1,0 +1,137 @@
+# === Secrets and credentials ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*credentials*.toml
+*credentials*.txt
+*credentials*.yaml
+*credentials*.yml
+*secrets*.json
+*secrets*.toml
+*secrets*.txt
+*secrets*.yaml
+*secrets*.yml
+auth.json
+/config.toml
+
+# === Runtime research state (never part of the source release) ===
+.autoresearch/
+**/.autoresearch/
+project-registry.json
+**/project-registry.json
+
+# === Databases and SQLite sidecars ===
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# === Research data, downloads, artifacts, and outputs ===
+# The public repository contains software only; these paths are blocked even
+# when they appear at the repository root by accident.
+/research/
+/data/
+/datasets/
+/documents/
+/experiments/
+/results/
+/manuscripts/
+/manuscript/
+/models/
+/reports/
+/literature/
+/figures/
+/notes/
+/submission/
+/verification/
+/private/
+/.autoresearch/
+data/raw/
+downloads/
+artifacts/
+runs/
+outputs/
+results/private/
+papers/private/
+private/
+run_outputs/
+workspace/
+*.csv
+*.tsv
+*.dta
+*.sav
+*.sas7bdat
+*.parquet
+*.feather
+*.npy
+*.npz
+*.joblib
+*.pickle
+*.pkl
+*.bbl
+*.aux
+*.tex
+*.bib
+
+# === Model weights and checkpoints ===
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.gguf
+
+# === Documents and archives that may contain private material ===
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# === Logs and temporary files ===
+*.log
+*.tmp
+*.bak
+.cache/
+cache/
+
+# === Personal development settings ===
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# === Local virtual environment used by the release checks ===
+/.venv-release/
+/dist-test/
+
+# === Local release-audit reports (not part of the public repository) ===
+PUBLIC_RELEASE_*

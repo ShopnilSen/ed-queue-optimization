@@ -1,0 +1,113 @@
+# AutoResearch provider configuration.
+#
+# Copy this file into your research project as:
+#
+#   <project-dir>/.autoresearch/config.toml
+#
+# Never put API keys in this file. `api_key_env` names an environment variable;
+# export the secret in the shell that runs `autoresearch` (or use the
+# credential store of the agent session you run inside).
+#
+# Supported provider kinds:
+#   openai_compatible  OpenAI, DeepSeek, OpenRouter, vLLM, and compatible APIs
+#   anthropic          Anthropic Messages API
+#   gemini             Google Gemini generateContent API
+#   opencode_cli       local OpenCode CLI (no HTTP endpoint or API key)
+#   external_embeddings  OpenAI-compatible embeddings endpoint (optional)
+
+[providers.reasoning]
+kind = "openai_compatible"
+base_url = "https://api.openai.com/v1"
+api_key_env = "OPENAI_API_KEY"
+# Throughput controls. Concurrency is the in-flight request count; set
+# max_concurrency above it to let the client probe upward and back off on 429.
+concurrency = 4
+max_concurrency = 8
+requests_per_second = 4
+max_retries = 2
+# Zero means "no application deadline" (the client applies finite defaults).
+read_timeout = 0
+total_timeout = 0
+
+[models.literature_extraction]
+provider = "reasoning"
+model = "<your-model-id>"
+
+[models.research_reasoning]
+provider = "reasoning"
+model = "<your-model-id>"
+
+[models.scientific_critic]
+provider = "reasoning"
+model = "<your-model-id>"
+
+# ---------------------------------------------------------------------------
+# Alternative provider examples. Uncomment one block, point the three model
+# roles at it, and export the referenced environment variable.
+# ---------------------------------------------------------------------------
+#
+# [providers.deepseek]
+# kind = "openai_compatible"
+# base_url = "https://api.deepseek.com/v1"
+# api_key_env = "DEEPSEEK_API_KEY"
+# structured_output_mode = "json_object"   # DeepSeek rejects json_schema
+#
+# [providers.anthropic]
+# kind = "anthropic"
+# base_url = "https://api.anthropic.com"
+# api_key_env = "ANTHROPIC_API_KEY"
+#
+# [providers.gemini]
+# kind = "gemini"
+# base_url = "https://generativelanguage.googleapis.com"
+# api_key_env = "GEMINI_API_KEY"
+#
+# [providers.opencode]
+# kind = "opencode_cli"
+# cli_executable = "opencode"        # PATH is searched; opencode.ps1 on Windows
+# cli_agent = "autoresearch-llm"     # must exist in the OpenCode CLI
+# cli_timeout = 600
+
+# ---------------------------------------------------------------------------
+# Optional embeddings provider. When omitted, review ranking uses a
+# deterministic lexical similarity fallback.
+# ---------------------------------------------------------------------------
+# [providers.embeddings]
+# kind = "external_embeddings"
+# base_url = "https://api.openai.com/v1"
+# api_key_env = "OPENAI_API_KEY"
+# embedding_dimension = 1536
+# embedding_batch_size = 64
+#
+# [models.embeddings]
+# provider = "embeddings"
+# model = "<your-embedding-model-id>"
+
+[research]
+# 0 means no aggregate token ceiling unless --max-tokens is passed.
+max_tokens = 0
+
+# Manuscript format gate: generic_journal (default), fasttrack, neurips, acl,
+# cvpr, workshop, or technical_report.
+manuscript_venue = "generic_journal"
+# deterministic (no model calls for prose) or model (audited model-assisted).
+manuscript_writer = "deterministic"
+
+# Discovery selection is domain-neutral by default. Require topic anchors only
+# when you want a hard topical filter. Values are matched as normalized
+# phrases against title + abstract.
+discovery_required_terms = []
+discovery_excluded_topics = []
+discovery_allowed_dois = []
+discovery_min_relevance = 0.05
+
+# Quality-width controls (parallel fan-out, not extra serial steps).
+discovery_query_perspectives = 3
+discovery_citation_expansion = true
+discovery_citation_anchors = 5
+discovery_citation_neighbors = 10
+review_ensemble = true
+
+# Follow the OpenCode session's own credential store instead of this file.
+# Leave false when this project config is the source of truth.
+auto_provider = false

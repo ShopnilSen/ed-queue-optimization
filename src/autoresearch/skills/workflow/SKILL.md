@@ -1,0 +1,160 @@
+---
+name: workflow
+description: Drive the full AutoResearch cycle in one durable, resumable command — seed → literature review → research question → hypotheses → versioned methodology → experimental design → approval-gated execution. Use when the user wants the whole pipeline, or to resume a project to a later stage. Individual skills remain available for single-stage control.
+metadata:
+  opencode/autoinvoke: "false"  # hidden from model auto-selection; explicit invocation only
+  opencode/slash: "true"        # expose as an explicit /<name> command in the OpenCode TUI
+---
+
+# Workflow (AutoResearch backend)
+
+Thin bridge to the AutoResearch scientific backend. It reuses completed
+stages, so re-invoking with `--project` resumes instead of repeating.
+
+## When to use
+
+- The user wants the complete cycle ("take this seed through to an experiment
+  design"), or wants to resume/extend an existing project to a later stage.
+- The user asks what stage a project is at (the result lists per-stage
+  dispositions with durable identities).
+
+## When NOT to use
+
+- The user wants a single stage under manual control — use the `review`,
+  `novelty`, or `experiment` skills.
+- No seed input (PDF path, DOI, HTTPS URL, or a local catalog) and no existing
+  project ID.
+
+## Prerequisites
+
+- The `autoresearch` CLI installed and on `PATH` (override with
+  `AUTORESEARCH_BIN`).
+- Provider configuration for model-backed stages (see
+  `config.example.toml`).
+- Execution requires an exact-specification approval; without one the run
+  stops at `awaiting_approval` and prints the exact package and missing
+  requirement. Never approve on the user's behalf without showing the spec.
+
+## Usage
+
+```bash
+# New project from a seed paper, stop after review + question:
+"${AUTORESEARCH_BIN:-autoresearch}" skill workflow \
+  --seed-paper "<pdf|doi|url>" --until question
+
+# Resume to a frozen methodology and experiment design:
+"${AUTORESEARCH_BIN:-autoresearch}" skill workflow \
+  --project "<project_id>" --until design
+
+# Publication track: review 20-40 papers so the manuscript's generic_journal
+# profile can meet its >=20 reviewed-reference threshold.
+"${AUTORESEARCH_BIN:-autoresearch}" skill workflow \
+  --seed-paper "<pdf|doi|url>" --limit 40 --top-k 20 \
+  --publication --venue generic_journal --until manuscript
+
+# Continue to execution (approval-gated) and inspect the package:
+"${AUTORESEARCH_BIN:-autoresearch}" skill workflow \
+  --project "<project_id>" --until experiment
+```
+
+Stop stages: `review`, `question`, `hypotheses`, `methodology`, `design`,
+`experiment`, `manuscript`. **Credentials:** inside an agent session the
+skills automatically follow the session's own AI model and API key
+(auto-detected from the OpenCode credential store; no config file needed).
+With an explicit config, resolution order is `api_key_env` → OpenCode
+credential store → for Anthropic-protocol providers the session's
+`ANTHROPIC_API_KEY` / connector settings. The design stage also
+generates + statically verifies the experiment implementation when none
+exists (bounded repair loop; failures recorded). The manuscript stage
+requires an analyzed experiment report; without one it reports `blocked`
+with the exact missing prerequisite instead of fabricating content. Every
+analyzed outcome is persisted to the shared Findings Memory, which
+conditions later novelty runs (failures and refutations first).
+
+The manuscript stage runs a **publication-readiness gate** before prose:
+it detects simulation/synthetic provenance, requires real dataset/commit
+identities for empirical work, and checks seeds, power, external baselines,
+ablations, and related-work coverage against the selected venue profile
+(`fasttrack`, `generic_journal`, `neurips`, `acl`, `cvpr`, `workshop`,
+`technical_report`). It then writes a contribution contract, a full-corpus
+themed literature synthesis, a sentence-level claim ledger, and a
+deterministic reviewer/venue/hygiene report. `status` is `complete` only when
+the lineage **and** every publication gate pass; otherwise it is `draft` or
+`incomplete`. `submission_ready` is the decision signal. The FastTrack
+template remains a profile, not a universal objective. The upstream stages
+supply the evidence those gates consume: review (quotable gap + project
+keywords + per-paper study design/datasets/limitations), novelty (the five
+Methodology fields or honest "not specified at freeze time" markers),
+experiment (verified provenance + ≥ 3 limitation rows + raw seed metrics +
+exact commands).
+
+## Progress reporting
+
+While the skill runs, the CLI writes one JSON line per completed step to
+**stderr** (stdout stays the single final result):
+
+```json
+{"progress": {"stage": "review.papers", "percent": 40, "completed": 8,
+  "total": 20, "detail": "8/20 papers reviewed",
+  "remaining": ["novelty", "experiment", "manuscript"]}}
+```
+
+Surface every event to the user as: `stage: N% (k/total) — remaining: ...`.
+Percentages are completed steps / total steps, NEVER time estimates. Do not
+invent a percentage before a progress line arrives; report stalls honestly.
+
+
+- Stages run in order — review → question → hypotheses → methodology →
+  design → experiment. Announce the target stage before invoking the
+  command, and report the per-stage dispositions when it returns.
+- Stages can take minutes. When the host supports background execution, run
+  the CLI in the background and poll
+  `"${AUTORESEARCH_BIN:-autoresearch}" skill state --project "<project_id>"`
+  every ~30–60 s, echoing one line per poll, e.g.
+  `[stage 2/6] review — run <run_id> running`. Stop when the newest run
+  reaches a terminal status. The state command is read-only and can be run
+  from any working directory.
+
+## Interpreting the JSON result
+
+- `stages[]` lists per-stage dispositions: `completed`, `reused`,
+  `regenerated`, `spec_conflict`, `replanned`, `awaiting_approval`, `executed_analysis_pending`,
+  `worker_unavailable`, `execution_failed`, `not_justified`, `unavailable`,
+  `stopped`, `budget_exhausted`, …
+- Durable identities: `gap_id` (the research question), `portfolio_id`,
+  `methodology_freeze_id` + `version`, `spec_id`, and the approval `checksum`.
+- `executed_analysis_pending` is honest: a completed approved action is not a
+  scientific result until artifacts are ingested and analyzed. Report that
+  state; never infer a decision from an exit code.
+- `research_state` and `pending_recovery` — the consolidated state snapshot
+  and its artifact path. When an execution fails, `pending_recovery.action`
+  and `next_stage` say whether the next step is operational (retry/repair/
+  adjust) or scientific (redesign/novelty/review/stop). Nothing expensive is
+  auto-executed; resume explicitly after the user decides. `autoresearch
+  skill state --project <id>` prints the same snapshot.
+- `publication_gaps` — cumulative machine-readable blockers owned by review,
+  novelty, or experiment (for example `reviewed_papers_below_minimum`,
+  `baselines_below_minimum`, `execution_artifact_missing`).
+- `artifacts.publication_contract` / `artifacts.publication_gaps` /
+  `artifacts.stage_metrics` — the shared contract, cumulative gaps, and
+  per-stage wall-clock/token/cost metrics.
+- With `--publication`, the loop stops at `review_gate`,
+  `methodology_gate`, or `design_gate` when the corresponding slice cannot
+  support a submission-grade paper. That is an honest early stop, not a
+  workflow failure.
+
+## Quality rules
+
+- Report the stage dispositions verbatim; do not paraphrase "awaiting" states
+  as successes.
+- Methodology freezing records what will be tested; it never certifies novelty.
+- Do not fabricate results, citations, or decisions. All claims come from the
+  backend's retained artifacts.
+
+## Where state lives
+
+Run the first invocation from inside the project's folder: the project's
+state is stored in `<project-dir>/.autoresearch/` and the project remembers
+it. Resume with `--project <id>` from any directory — the skills anchor to
+the project's own database and never mix projects or write into the source
+checkout.
