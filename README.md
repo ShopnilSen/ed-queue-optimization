@@ -499,6 +499,13 @@ Keep changes evidence-first, add offline tests for behavior changes, do not
 add hidden credentials, and do not claim capabilities the code does not
 implement.
 
+## Attribution
+
+The reusable AutoResearch package is also published at
+<https://github.com/ShopnilSen/autoresearch-ed-triage-uncertainty>. This
+repository redistributes it under the MIT License; the original copyright line
+is preserved unchanged in `LICENSE`.
+
 ## License
 
 MIT. See `LICENSE`. The original copyright line is preserved unchanged.
